@@ -16,7 +16,6 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # --- Konfiguratsiya ---
-ALLOWED_USERS = [7184964035, 5789956459,7711778383]
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 FERNET_KEY = os.getenv("FERNET_KEY")
 if not TELEGRAM_TOKEN or not FERNET_KEY:
@@ -176,23 +175,23 @@ def lang_keyboard():
 @dp.message(F.text == "/start")
 async def cmd_start(message: Message, state: FSMContext):
     tg_id = message.from_user.id
-
-    # ❌ Avval ruxsatni tekshiramiz
-    if tg_id not in ALLOWED_USERS:
-        await message.answer("❌ Sizga ruxsat yo‘q.\n\n"
-                             "Bu bot faqat @axrorback va @asad_back uchun.")
-        return
-
-    # ✅ Agar ruxsat bo‘lsa, davom etadi
     row = get_user_by_tg(tg_id)
+
+    # Agar foydalanuvchi allaqachon login bo'lgan bo'lsa
     if row and token_is_valid(row):
         await message.answer(
-            f"{t(row, 'already_logged')}\n👤 {row[8]}\n🆔 {row[7]}",
+            f"{t(row, 'already_logged')}\n"
+            f"👤 {row[8]}\n"
+            f"🆔 {row[7]}",
             reply_markup=main_keyboard(row)
         )
         return
 
-    await message.answer(t(row, "choose_lang"), reply_markup=lang_keyboard())
+    # Yangi foydalanuvchi uchun til tanlash
+    await message.answer(
+        t(row, "choose_lang"),
+        reply_markup=lang_keyboard()
+    )
     await state.set_state(LoginStates.waiting_lang)
 
 @dp.message(LoginStates.waiting_lang)
