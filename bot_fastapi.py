@@ -3,9 +3,13 @@ from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, Message
 import asyncio
 import logging
 import httpx
+from dotenv import load_dotenv
+load_dotenv()
+import os
+from aiogram.filters import Command
 
-TOKEN = "._."
-BASE_URL = "http://127.0.0.1:8000"
+TOKEN = os.getenv('TOKEN')
+BASE_URL = "http://127.0.0.1:3000"
 ADMINS = [7184964035, 5789956459]
 
 USERS = {
@@ -35,13 +39,15 @@ def is_admin(user_id: int) -> bool:
 
 
 # 🔹 Start komandasi
-@dp.message(F.text == "/start")
+# start handler
+@dp.message(Command("start"))
 async def cmd_start(message: Message):
-    if not is_admin(message.from_user.id):
-        return await message.answer("⛔ Siz admin emassiz!\n\nBu bot faqat @axrorback va @asad_back uchun ")
+    if message.from_user.id not in ADMINS:
+        return await message.answer(
+            "⛔ Siz admin emassiz!\n\n"
+            "Bu bot faqat @axrorback va @asad_back uchun "
+        )
     await message.answer("👋 Salom!\nKerakli bo‘limni tanlang:", reply_markup=main_kb)
-
-
 # 🔹 Davomat
 @dp.message(F.text == "📊 Davomat")
 async def attendance_cmd(message: Message):

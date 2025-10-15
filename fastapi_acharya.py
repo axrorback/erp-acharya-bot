@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException
 import httpx
 from typing import Dict
-from datetime import datetime, timedelta
+from datetime import datetime
 
 app = FastAPI()
 
@@ -11,11 +11,11 @@ USER_DETAILS_API = "https://acharyajava.uz/AcharyaInstituteUZB/api/getUserDetail
 TIMETABLE_API = "https://acharyajava.uz/AcharyaInstituteUZB/api/academic/timeTableDetailsOfStudentOrEmployeeForMobile"
 ATTENDANCE_API = "https://acharyajava.uz/AcharyaInstituteUZB/api/student/attendanceReportForStudentProfileByStudentId/{}/{}"
 
-# Faqat bizning 2 ta user
+# Bizning userlar
 USERS = {
     "student1": {
         "username": "ABT24CCS008",
-        "password": "acharya1234",
+        "password": "Kelajak5002@",
         "student_id": 689,
         "year_or_sem": 3
     },
@@ -27,20 +27,12 @@ USERS = {
     }
 }
 
-# Token cache
-TOKENS: Dict[str, Dict] = {}  # { "student1": {"token": "xxx", "expire": datetime, "user_id": 123 } }
-
 
 async def get_token(user_key: str) -> Dict:
-    """Token olish yoki cache'dan qaytarish"""
+    """Har safar yangi token olish"""
     creds = USERS.get(user_key)
     if not creds:
         raise HTTPException(status_code=404, detail="User topilmadi")
-
-    if user_key in TOKENS:
-        token_data = TOKENS[user_key]
-        if token_data["expire"] > datetime.utcnow():
-            return token_data
 
     async with httpx.AsyncClient() as client:
         res = await client.post(LOGIN_API, json={
@@ -52,15 +44,10 @@ async def get_token(user_key: str) -> Dict:
         raise HTTPException(status_code=401, detail="Login xatolik")
 
     data = res.json()["data"]
-    token = data["token"]
-    user_id = data["userId"]
-
-    TOKENS[user_key] = {
-        "token": token,
-        "expire": datetime.utcnow() + timedelta(hours=10),
-        "user_id": user_id
+    return {
+        "token": data["token"],
+        "user_id": data["userId"]
     }
-    return TOKENS[user_key]
 
 
 @app.get("/profile/{user_key}")
@@ -89,7 +76,7 @@ async def get_profile(user_key: str):
 
 @app.get("/timetable/{user_key}")
 async def get_timetable(user_key: str):
-    """Student timetable minimal ma'lumotlari (bugungi kun uchun tekshiruv)"""
+    """Bugungi kun timetable"""
     if user_key not in USERS:
         raise HTTPException(status_code=404, detail="User topilmadi")
 
@@ -115,7 +102,6 @@ async def get_timetable(user_key: str):
     if not raw_data:
         return {"message": "Bugun dam olish kuni yoki ERP server ishlamayapti"}
 
-    # Minimal formatga keltirish
     timetable = []
     today_str = now.strftime("%Y-%m-%d")
 
@@ -133,7 +119,7 @@ async def get_timetable(user_key: str):
                 })
 
     if not timetable:
-        return {"message": "Bugun dam olish kuni yoki ERP server ishlamayapti"}
+        return {"message": "Bugun dars yo‘q yoki ERP server ishlamayapti"}
 
     return {
         "user": user_key,
