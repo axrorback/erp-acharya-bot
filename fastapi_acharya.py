@@ -3,7 +3,9 @@ import httpx
 from typing import Dict
 from datetime import datetime
 
+
 app = FastAPI()
+
 
 # API endpoints
 LOGIN_API = "https://acharyajava.uz/AcharyaInstituteUZB/api/authenticate"
